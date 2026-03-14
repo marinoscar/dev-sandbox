@@ -20,6 +20,8 @@ Personal development sandbox VPS running Ubuntu 24.04 LTS. This repository (`/op
 |---|---|---|---|
 | admin.dev.marin.cr | Cockpit (server admin) | Authentik SSO | Active |
 | code.marin.cr | code-server (IDE) | Authentik SSO | Active |
+| knecta.dev.marin.cr | Knecta web app (port 8319) | Google OAuth | Active |
+| *.dev.marin.cr | Wildcard reverse proxy | Per-project | Active |
 
 ## Architecture
 
@@ -46,8 +48,9 @@ When adding new services behind Authentik, use **Forward auth (single applicatio
 |---|---|---|
 | Cockpit + Navigator | Running (localhost:9090, --local-ssh, Authentik SSO + auto-login) | `/etc/cockpit/cockpit.conf`, systemd overrides |
 | code-server | Running (localhost:8081, auth: none, Authentik SSO) | `/home/marinoscar/.config/code-server/config.yaml` |
-| Nginx | Running (80, 443) | `/etc/nginx/sites-available/{cockpit,code-server}` |
-| Let's Encrypt | Active (auto-renew) | `/etc/letsencrypt/live/{admin.dev,code}.marin.cr/` |
+| Nginx | Running (80, 443) | `/etc/nginx/sites-available/{cockpit,code-server,dev-wildcard}` |
+| Let's Encrypt | Active (auto-renew) | `/etc/letsencrypt/live/{admin.dev,code,dev}.marin.cr/` |
+| Wildcard HTTPS Proxy | Active (*.dev.marin.cr → per-project ports) | `/etc/nginx/sites-available/dev-wildcard` |
 | CrowdSec | Active (agent + firewall bouncer, escalating bans) | `/etc/crowdsec/profiles.yaml`, `/etc/crowdsec/acquis.d/nginx.yaml` |
 | UFW Firewall | Active (22, 80, 443, 5432 from pgadmin.marin.cr) | `sudo ufw status` |
 | Docker Engine | Running (29.3.0 + Compose v5.1.0) | `/etc/docker/`, Docker official apt repo |
@@ -73,3 +76,12 @@ When adding new services behind Authentik, use **Forward auth (single applicatio
 - `/etc/systemd/system/docker-firewall.service` — Persists Docker firewall rules across reboots
 - `/home/marinoscar/.config/code-server/config.yaml` — code-server configuration
 - `/etc/nginx/sites-available/code-server` — code-server Nginx vhost config
+- `/etc/nginx/sites-available/dev-wildcard` — Wildcard reverse proxy for *.dev.marin.cr (subdomain → port map)
+- `/etc/letsencrypt/live/dev.marin.cr/` — Wildcard SSL certificate for *.dev.marin.cr
+- `/root/.aws/credentials` — AWS credentials for Certbot Route 53 DNS-01 renewal
+
+## Web App Hosting
+
+Projects are hosted via HTTPS subdomains under `*.dev.marin.cr`. See `/opt/infra/docs/web-app-hosting.md` for full details.
+
+**To add a new project:** Edit the `map` block in `/etc/nginx/sites-available/dev-wildcard`, add one line mapping subdomain to port, reload Nginx. No DNS or SSL changes needed — the wildcard covers everything.

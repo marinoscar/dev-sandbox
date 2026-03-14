@@ -91,10 +91,13 @@ CrowdSec remediation / log-based protection
   ▼
 Nginx reverse proxy on host
   │
-  ├── dev.marin.cr            → code-server (host service)
-  ├── admin.dev.marin.cr      → Cockpit (host service)
-  ├── pgadmin.dev.marin.cr    → pgAdmin (container, only when used)
-  └── optional project routes → individual apps/services when needed
+  ├── code.marin.cr           → code-server (host service, Authentik SSO)
+  ├── admin.dev.marin.cr      → Cockpit (host service, Authentik SSO)
+  ├── *.dev.marin.cr           → wildcard HTTPS proxy (subdomain → port map)
+  │     ├── knecta.dev.marin.cr   → 127.0.0.1:8319 (Knecta)
+  │     ├── newapp.dev.marin.cr   → 127.0.0.1:8320 (future project)
+  │     └── (one line per project in Nginx map block)
+  └── pgadmin.dev.marin.cr    → pgAdmin (container, only when used)
           │
           ▼
 Authentik integration via Nginx forward auth / proxy auth
@@ -145,15 +148,14 @@ This sandbox is intentionally designed to support them.
 * Backend: **pgAdmin in Docker**
 * Access model: HTTPS through Nginx, protected by Authentik
 
-### Optional project hostnames
+### Project subdomains (wildcard HTTPS proxy)
 
-You may later create project-specific hostnames for apps that deserve a stable URL, for example:
+All web apps are served via HTTPS subdomains under `*.dev.marin.cr` using a wildcard reverse proxy. A single wildcard DNS record and wildcard SSL certificate cover all subdomains. Each project is mapped to a local port via one line in the Nginx config.
 
-* `app1.dev.marin.cr`
-* `api1.dev.marin.cr`
-* `demo.dev.marin.cr`
+Currently active:
+* `knecta.dev.marin.cr` → port 8319
 
-These are optional and should be added only when they improve your workflow.
+To add a new project, edit the map block in `/etc/nginx/sites-available/dev-wildcard` and reload Nginx. See `/opt/infra/docs/web-app-hosting.md` for the full procedure.
 
 ---
 
@@ -393,21 +395,19 @@ This gives defense in depth.
 
 ## TLS and Certificate Strategy
 
-Use Let’s Encrypt for all public subdomains that you expose, including:
+Use Let’s Encrypt for all public subdomains that you expose.
 
-* `dev.marin.cr`
-* `admin.dev.marin.cr`
-* `pgadmin.dev.marin.cr`
-* any optional project hostnames later added behind Nginx
+Active certificates:
 
-Recommended behavior:
+* `code.marin.cr` — individual cert (HTTP-01 challenge)
+* `admin.dev.marin.cr` — individual cert (HTTP-01 challenge)
+* `*.dev.marin.cr` + `dev.marin.cr` — **wildcard cert** (DNS-01 challenge via Route 53)
 
-* automatic certificate issuance
-* automatic renewal
-* automatic Nginx reload after renewal
-* alerting/logging on failure
+The wildcard cert covers all project subdomains. New projects do **not** need new certificates.
 
-All public services should redirect HTTP to HTTPS.
+Wildcard cert renewal requires AWS credentials at `/root/.aws/credentials` with Route 53 permissions. See `/opt/infra/docs/web-app-hosting.md` for details.
+
+All public services redirect HTTP to HTTPS. Certbot’s systemd timer handles automatic renewal.
 
 ---
 
@@ -675,15 +675,17 @@ The development sandbox should be implemented as a **host-centric remote worksta
 
 #### Public domains
 
-* `dev.marin.cr` → code-server
+* `code.marin.cr` → code-server
 * `admin.dev.marin.cr` → Cockpit
+* `*.dev.marin.cr` → wildcard HTTPS proxy for all project subdomains
 * `pgadmin.dev.marin.cr` → pgAdmin when in use
 
 #### Development access model
 
-* stable browser access for the workstation via `https://dev.marin.cr`
-* support for direct port-based development previews such as `dev.marin.cr:1983` and `dev.marin.cr:8978`
-* optional later use of clean subdomains for selected apps when helpful
+* stable browser access for the workstation via `https://code.marin.cr`
+* each web app project gets an HTTPS subdomain (e.g., `https://knecta.dev.marin.cr`)
+* adding a new project requires editing one line in the Nginx map block — no DNS or SSL changes
+* OAuth providers (Google, Microsoft) work correctly because all apps are served over HTTPS
 
 #### Security front door
 
