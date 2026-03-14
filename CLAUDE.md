@@ -24,7 +24,7 @@ Personal development sandbox VPS running Ubuntu 24.04 LTS. This repository (`/op
 
 ## Architecture
 
-Host-level services: SSH, Nginx (reverse proxy + TLS + Authentik forward auth), Cockpit, Let's Encrypt
+Host-level services: SSH, Nginx (reverse proxy + TLS + Authentik forward auth), Cockpit, CrowdSec, Let's Encrypt
 Containerized services (on-demand): PostgreSQL, pgAdmin, Neo4j, Redis
 
 All public traffic routes through Nginx with TLS via Let's Encrypt. Services bind to localhost and are proxied by Nginx. Authentik at auth.marin.cr provides SSO via Nginx `auth_request`.
@@ -47,6 +47,7 @@ When adding new services behind Authentik, use **Forward auth (single applicatio
 | Cockpit + Navigator | Running (localhost:9090, --local-ssh, Authentik SSO + auto-login) | `/etc/cockpit/cockpit.conf`, systemd overrides |
 | Nginx | Running (80, 443) | `/etc/nginx/sites-available/cockpit` |
 | Let's Encrypt | Active (auto-renew) | `/etc/letsencrypt/live/admin.dev.marin.cr/` |
+| CrowdSec | Active (agent + firewall bouncer, escalating bans) | `/etc/crowdsec/profiles.yaml`, `/etc/crowdsec/acquis.d/nginx.yaml` |
 | UFW Firewall | Active (22, 80, 443 open) | `sudo ufw status` |
 
 ## Key Paths
@@ -59,4 +60,6 @@ When adding new services behind Authentik, use **Forward auth (single applicatio
 - `/etc/cockpit/machines.d/localhost.json` — Cockpit host registration
 - `/etc/cockpit/.auto-auth` — Auto-login password (root-only)
 - `/etc/cockpit/.auto-auth-header` — Base64-encoded auth header for Nginx (root-only)
+- `/etc/crowdsec/profiles.yaml` — CrowdSec ban duration policy
+- `/etc/crowdsec/acquis.d/nginx.yaml` — CrowdSec Nginx log acquisition
 - `/etc/letsencrypt/` — TLS certificates
