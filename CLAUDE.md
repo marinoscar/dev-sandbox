@@ -19,11 +19,11 @@ Personal development sandbox VPS running Ubuntu 24.04 LTS. This repository (`/op
 | Subdomain | Service | Auth | Status |
 |---|---|---|---|
 | admin.dev.marin.cr | Cockpit (server admin) | Authentik SSO | Active |
-| dev.marin.cr | code-server (IDE) | — | Planned |
+| code.marin.cr | code-server (IDE) | Authentik SSO | Active |
 
 ## Architecture
 
-Host-level services: SSH, Nginx (reverse proxy + TLS + Authentik forward auth), Cockpit, CrowdSec, Docker Engine, Let's Encrypt
+Host-level services: SSH, Nginx (reverse proxy + TLS + Authentik forward auth), Cockpit, code-server, CrowdSec, Docker Engine, Let's Encrypt
 Containerized services (running): PostgreSQL
 Containerized services (on-demand): Neo4j, Redis
 
@@ -45,8 +45,9 @@ When adding new services behind Authentik, use **Forward auth (single applicatio
 | Service | Status | Config |
 |---|---|---|
 | Cockpit + Navigator | Running (localhost:9090, --local-ssh, Authentik SSO + auto-login) | `/etc/cockpit/cockpit.conf`, systemd overrides |
-| Nginx | Running (80, 443) | `/etc/nginx/sites-available/cockpit` |
-| Let's Encrypt | Active (auto-renew) | `/etc/letsencrypt/live/admin.dev.marin.cr/` |
+| code-server | Running (localhost:8081, auth: none, Authentik SSO) | `/home/marinoscar/.config/code-server/config.yaml` |
+| Nginx | Running (80, 443) | `/etc/nginx/sites-available/{cockpit,code-server}` |
+| Let's Encrypt | Active (auto-renew) | `/etc/letsencrypt/live/{admin.dev,code}.marin.cr/` |
 | CrowdSec | Active (agent + firewall bouncer, escalating bans) | `/etc/crowdsec/profiles.yaml`, `/etc/crowdsec/acquis.d/nginx.yaml` |
 | UFW Firewall | Active (22, 80, 443, 5432 from pgadmin.marin.cr) | `sudo ufw status` |
 | Docker Engine | Running (29.3.0 + Compose v5.1.0) | `/etc/docker/`, Docker official apt repo |
@@ -70,3 +71,5 @@ When adding new services behind Authentik, use **Forward auth (single applicatio
 - `/opt/infra/containers/postgres/.env` — Database credentials (chmod 600, gitignored)
 - `/opt/infra/scripts/docker-firewall.sh` — DOCKER-USER iptables rules (restricts port 5432)
 - `/etc/systemd/system/docker-firewall.service` — Persists Docker firewall rules across reboots
+- `/home/marinoscar/.config/code-server/config.yaml` — code-server configuration
+- `/etc/nginx/sites-available/code-server` — code-server Nginx vhost config
