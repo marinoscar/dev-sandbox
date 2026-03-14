@@ -20,12 +20,12 @@ Personal development sandbox VPS running Ubuntu 24.04 LTS. This repository (`/op
 |---|---|---|---|
 | admin.dev.marin.cr | Cockpit (server admin) | Authentik SSO | Active |
 | dev.marin.cr | code-server (IDE) | — | Planned |
-| pgadmin.dev.marin.cr | pgAdmin | — | Planned |
 
 ## Architecture
 
-Host-level services: SSH, Nginx (reverse proxy + TLS + Authentik forward auth), Cockpit, CrowdSec, Let's Encrypt
-Containerized services (on-demand): PostgreSQL, pgAdmin, Neo4j, Redis
+Host-level services: SSH, Nginx (reverse proxy + TLS + Authentik forward auth), Cockpit, CrowdSec, Docker Engine, Let's Encrypt
+Containerized services (running): PostgreSQL
+Containerized services (on-demand): Neo4j, Redis
 
 All public traffic routes through Nginx with TLS via Let's Encrypt. Services bind to localhost and are proxied by Nginx. Authentik at auth.marin.cr provides SSO via Nginx `auth_request`.
 
@@ -48,7 +48,10 @@ When adding new services behind Authentik, use **Forward auth (single applicatio
 | Nginx | Running (80, 443) | `/etc/nginx/sites-available/cockpit` |
 | Let's Encrypt | Active (auto-renew) | `/etc/letsencrypt/live/admin.dev.marin.cr/` |
 | CrowdSec | Active (agent + firewall bouncer, escalating bans) | `/etc/crowdsec/profiles.yaml`, `/etc/crowdsec/acquis.d/nginx.yaml` |
-| UFW Firewall | Active (22, 80, 443 open) | `sudo ufw status` |
+| UFW Firewall | Active (22, 80, 443, 5432 from pgadmin.marin.cr) | `sudo ufw status` |
+| Docker Engine | Running (29.3.0 + Compose v5.1.0) | `/etc/docker/`, Docker official apt repo |
+| PostgreSQL | Running (17.9, container, 0.0.0.0:5432) | `/opt/infra/containers/postgres/docker-compose.yml` |
+| Docker Firewall | Active (DOCKER-USER iptables, restricts 5432) | `/opt/infra/scripts/docker-firewall.sh` |
 
 ## Key Paths
 
@@ -63,3 +66,7 @@ When adding new services behind Authentik, use **Forward auth (single applicatio
 - `/etc/crowdsec/profiles.yaml` — CrowdSec ban duration policy
 - `/etc/crowdsec/acquis.d/nginx.yaml` — CrowdSec Nginx log acquisition
 - `/etc/letsencrypt/` — TLS certificates
+- `/opt/infra/containers/postgres/docker-compose.yml` — PostgreSQL compose file
+- `/opt/infra/containers/postgres/.env` — Database credentials (chmod 600, gitignored)
+- `/opt/infra/scripts/docker-firewall.sh` — DOCKER-USER iptables rules (restricts port 5432)
+- `/etc/systemd/system/docker-firewall.service` — Persists Docker firewall rules across reboots
