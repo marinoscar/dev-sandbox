@@ -26,7 +26,7 @@ Personal development sandbox VPS running Ubuntu 24.04 LTS. This repository (`/op
 ## Architecture
 
 Host-level services: SSH, Nginx (reverse proxy + TLS + Authentik forward auth), Cockpit, code-server, CrowdSec, Docker Engine, Let's Encrypt
-Containerized services (running): PostgreSQL
+Containerized services (running): PostgreSQL, Portainer Agent
 Containerized services (on-demand): Neo4j, Redis
 
 All public traffic routes through Nginx with TLS via Let's Encrypt. Services bind to localhost and are proxied by Nginx. Authentik at auth.marin.cr provides SSO via Nginx `auth_request`.
@@ -52,7 +52,8 @@ When adding new services behind Authentik, use **Forward auth (single applicatio
 | Let's Encrypt | Active (auto-renew) | `/etc/letsencrypt/live/{admin.dev,code,dev}.marin.cr/` |
 | Wildcard HTTPS Proxy | Active (*.dev.marin.cr → per-project ports) | `/etc/nginx/sites-available/dev-wildcard` |
 | CrowdSec | Active (agent + firewall bouncer, escalating bans) | `/etc/crowdsec/profiles.yaml`, `/etc/crowdsec/acquis.d/nginx.yaml` |
-| UFW Firewall | Active (22, 80, 443, 5432 from pgadmin.marin.cr) | `sudo ufw status` |
+| Portainer Agent | Running (container, 0.0.0.0:9001, restricted to portainer.marin.cr) | `/opt/infra/docs/portainer-agent.md` |
+| UFW Firewall | Active (22, 80, 443, 5432 from pgadmin.marin.cr, 9001 from portainer.marin.cr) | `sudo ufw status` |
 | Docker Engine | Running (29.3.0 + Compose v5.1.0) | `/etc/docker/`, Docker official apt repo |
 | PostgreSQL | Running (17.9, container, 0.0.0.0:5432) | `/opt/infra/containers/postgres/docker-compose.yml` |
 | Docker Firewall | Active (DOCKER-USER iptables, restricts 5432) | `/opt/infra/scripts/docker-firewall.sh` |
@@ -72,7 +73,7 @@ When adding new services behind Authentik, use **Forward auth (single applicatio
 - `/etc/letsencrypt/` — TLS certificates
 - `/opt/infra/containers/postgres/docker-compose.yml` — PostgreSQL compose file
 - `/opt/infra/containers/postgres/.env` — Database credentials (chmod 600, gitignored)
-- `/opt/infra/scripts/docker-firewall.sh` — DOCKER-USER iptables rules (restricts port 5432)
+- `/opt/infra/scripts/docker-firewall.sh` — DOCKER-USER iptables rules (restricts ports 5432, 9001)
 - `/etc/systemd/system/docker-firewall.service` — Persists Docker firewall rules across reboots
 - `/home/marinoscar/.config/code-server/config.yaml` — code-server configuration
 - `/etc/nginx/sites-available/code-server` — code-server Nginx vhost config

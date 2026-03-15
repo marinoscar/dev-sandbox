@@ -15,5 +15,11 @@ iptables -A DOCKER-USER -p tcp --dport 5432 -s 127.0.0.1 -j ACCEPT
 iptables -A DOCKER-USER -p tcp --dport 5432 -s 172.16.0.0/12 -j ACCEPT
 iptables -A DOCKER-USER -p tcp --dport 5432 -j DROP
 
+# Portainer Agent (9001): allow from portainer.marin.cr, localhost, and Docker networks
+iptables -A DOCKER-USER -p tcp --dport 9001 -s 195.26.247.169 -j ACCEPT
+iptables -A DOCKER-USER -p tcp --dport 9001 -s 127.0.0.1 -j ACCEPT
+iptables -A DOCKER-USER -p tcp --dport 9001 -s 172.16.0.0/12 -j ACCEPT
+iptables -A DOCKER-USER -p tcp --dport 9001 -j DROP
+
 # Default: allow everything else through (don't break other containers)
 iptables -A DOCKER-USER -j RETURN
